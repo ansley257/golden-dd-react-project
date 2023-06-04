@@ -6,7 +6,6 @@
  */
 function setUpDatadog() {
   const { tracer: Tracer } = require('dd-trace');
-  const { datadogRum } = require('@datadog/browser-rum');
 
   const tracer = Tracer.init({
     // Your options here.
@@ -18,35 +17,6 @@ function setUpDatadog() {
     service: process.env.DD_SERVICE_NAME,
     version: process.env.DD_VERSION,
   });
-
-  console.debug('DD_APPLICATION_ID', process.env.DD_APPLICATION_ID);
-  console.debug('DD_CLIENT_TOKEN', process.env.DD_CLIENT_TOKEN);
-  console.debug('DD_SERVICE_NAME', process.env.DD_SERVICE_NAME);
-  console.debug('DD_VERSION', process.env.DD_VERSION);
-
-  const rum = datadogRum.init({
-    applicationId: process.env.DD_APPLICATION_ID,
-    clientToken: process.env.DD_CLIENT_TOKEN,
-    site: 'datadoghq.com',
-    service: process.env.DD_SERVICE_NAME,
-    env: process.env.NODE_ENV === 'production' ? 'prod' : 'dev',
-    // Specify a version number to identify the deployed version of your application in Datadog
-    version: process.env.DD_VERSION,
-    sessionSampleRate: 100,
-    sessionReplaySampleRate: 100,
-    trackUserInteractions: true,
-    trackResources: true,
-    trackLongTasks: true,
-    defaultPrivacyLevel: 'mask-user-input',
-  });
-
-  console.debug('rum', rum);
-  console.log(
-    'start session replay recording',
-    datadogRum.startSessionReplayRecording
-  );
-
-  datadogRum.startSessionReplayRecording();
 }
 
 /**
