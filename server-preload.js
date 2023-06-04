@@ -90,7 +90,14 @@ function setUpLogging() {
         // already be undefined, since it's defined above as undefined, and is not reassigned.
         data = data || {};
         // Map over the parts and clean them for serialization and save that to data.parts
-        data.parts = parts.map((part) => cleanObjectForSerialization(part));
+        const partsSerialized = parts.map((part) =>
+          cleanObjectForSerialization(part)
+        );
+
+        // If part is an object, then merge it into data
+        if (typeof parts === 'object') {
+          data = { ...data, parts };
+        }
       }
 
       // If nativeError is truthy and parts.length is 1, then set messages to an array with nativeError.toString()
