@@ -1,8 +1,8 @@
 import React from 'react';
-import Logger from './logger';
+// import Logger from './logger';
 
 export default function App() {
-  Logger.warn('yoa');
+  console.warn('yoa');
   return (
     <div className='App'>
       <h1>Hello CodeSandbox</h1>
