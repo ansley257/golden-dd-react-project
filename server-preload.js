@@ -4,13 +4,49 @@
  * Set up datadog tracing. This should be called first, so Datadog can hook
  * all the other dependencies like `http`.
  */
-function setUpDatadogTracing() {
+function setUpDatadog() {
   const { tracer: Tracer } = require('dd-trace');
+  const { datadogRum } = require('@datadog/browser-rum');
+
   const tracer = Tracer.init({
     // Your options here.
     runtimeMetrics: true,
     logInjection: true,
+    appsec: true,
+    analytics: true,
+    env: process.env.NODE_ENV === 'production' ? 'prod' : 'dev',
+    service: process.env.DD_SERVICE_NAME,
+    version: process.env.DD_VERSION,
   });
+
+  console.debug('DD_APPLICATION_ID', process.env.DD_APPLICATION_ID);
+  console.debug('DD_CLIENT_TOKEN', process.env.DD_CLIENT_TOKEN);
+  console.debug('DD_SERVICE_NAME', process.env.DD_SERVICE_NAME);
+  console.debug('DD_VERSION', process.env.DD_VERSION);
+
+  const rum = datadogRum.init({
+    applicationId: process.env.DD_APPLICATION_ID,
+    clientToken: process.env.DD_CLIENT_TOKEN,
+    site: 'datadoghq.com',
+    service: process.env.DD_SERVICE_NAME,
+    env: process.env.NODE_ENV === 'production' ? 'prod' : 'dev',
+    // Specify a version number to identify the deployed version of your application in Datadog
+    version: process.env.DD_VERSION,
+    sessionSampleRate: 100,
+    sessionReplaySampleRate: 100,
+    trackUserInteractions: true,
+    trackResources: true,
+    trackLongTasks: true,
+    defaultPrivacyLevel: 'mask-user-input',
+  });
+
+  console.debug('rum', rum);
+  console.log(
+    'start session replay recording',
+    datadogRum.startSessionReplayRecording
+  );
+
+  datadogRum.startSessionReplayRecording();
 }
 
 /**
@@ -32,18 +68,16 @@ function setUpLogging() {
   const path = require('path');
   require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
   const winston = require('winston');
-  console.log('process.env.LOG_FILE_PATH', process.env.LOG_FILE_PATH);
   const logger = winston.createLogger({
     level: 'debug',
     format: winston.format.combine(
-      winston.format.label({ label: 'right meow!' }),
       winston.format.json(),
       winston.format.timestamp()
     ),
     transports: [
       new winston.transports.Console(),
       new winston.transports.File({
-        filename: process.env.LOG_FILE_PATH,
+        filename: process.env.DEBUG_LOG_FILE_PATH,
         level: 'debug',
         format: winston.format.json(),
       }),
@@ -192,6 +226,6 @@ function cleanObjectForSerialization(value) {
   return cycleFreeValue;
 }
 
-setUpDatadogTracing();
+setUpDatadog();
 setUpDOMParser();
 setUpLogging();

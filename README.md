@@ -7,6 +7,9 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 1. **DATADOG_API_KEY** The api key from the Datadog account you want to send logs to
 2. **DATADOG_HOSTNAME** The hostname as it should appear in Datadog
 3. **LOG_FILE_PATH** This is the path that you are currently logging to. By standard this should be `/var/log/<APP_NAME>.log`, provided you don't have access to that (on macOS it's a private file) you can create a logging folder.
+4. **NODE_ENV** 'dev' or 'staging' or 'prod', usually, but can be whatever you choose
+5. **DD_SERVICE_NAME** the name of your service
+6. **DD_VERSION** the version of your service
 
 ### DD AGENT
 
