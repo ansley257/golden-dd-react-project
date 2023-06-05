@@ -1,6 +1,6 @@
 {
-  "name": "winston-test",
-  "version": "0.1.0",
+  "name": "dd-winston-test",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "node --require ./server-preload.js ./node_modules/.bin/next dev",
@@ -11,6 +11,7 @@
   "dependencies": {
     "@datadog/browser-rum": "^4.42.2",
     "@xmldom/xmldom": "^0.8.8",
+    "cycle": "^1.0.3",
     "datadog-winston": "^1.5.1",
     "dd-trace": "^2.35.0",
     "dotenv": "^16.1.3",

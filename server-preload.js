@@ -6,7 +6,6 @@
  */
 function setUpDatadog() {
   const { tracer: Tracer } = require('dd-trace');
-  const { datadogRum } = require('@datadog/browser-rum');
 
   const tracer = Tracer.init({
     // Your options here.
@@ -18,37 +17,7 @@ function setUpDatadog() {
     service: process.env.DD_SERVICE_NAME,
     version: process.env.DD_VERSION,
   });
-
-  console.debug('DD_APPLICATION_ID', process.env.DD_APPLICATION_ID);
-  console.debug('DD_CLIENT_TOKEN', process.env.DD_CLIENT_TOKEN);
-  console.debug('DD_SERVICE_NAME', process.env.DD_SERVICE_NAME);
-  console.debug('DD_VERSION', process.env.DD_VERSION);
-
-  const rum = datadogRum.init({
-    applicationId: process.env.DD_APPLICATION_ID,
-    clientToken: process.env.DD_CLIENT_TOKEN,
-    site: 'datadoghq.com',
-    service: process.env.DD_SERVICE_NAME,
-    env: process.env.NODE_ENV === 'production' ? 'prod' : 'dev',
-    // Specify a version number to identify the deployed version of your application in Datadog
-    version: process.env.DD_VERSION,
-    sessionSampleRate: 100,
-    sessionReplaySampleRate: 100,
-    trackUserInteractions: true,
-    trackResources: true,
-    trackLongTasks: true,
-    defaultPrivacyLevel: 'mask-user-input',
-  });
-
-  console.debug('rum', rum);
-  console.log(
-    'start session replay recording',
-    datadogRum.startSessionReplayRecording
-  );
-
-  datadogRum.startSessionReplayRecording();
 }
-
 /**
  * Polyfill DOMParser for react-intl
  * Otherwise react-intl spews errors related to formatting
@@ -68,6 +37,7 @@ function setUpLogging() {
   const path = require('path');
   require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
   const winston = require('winston');
+
   const logger = winston.createLogger({
     level: 'debug',
     format: winston.format.combine(
@@ -75,7 +45,7 @@ function setUpLogging() {
       winston.format.timestamp()
     ),
     transports: [
-      new winston.transports.Console(),
+      // new winston.transports.Console(),
       new winston.transports.File({
         filename: process.env.DEBUG_LOG_FILE_PATH,
         level: 'debug',
@@ -90,23 +60,25 @@ function setUpLogging() {
     // the next line bings the logger to either logger.levelName or logger.info in order to
     // support the default console.log, console.info, etc. You can now just call to baseLogFN
     // with the arguments you want to log.
-    const baseLogFn = (logger[levelName] || logger.info).bind(logger);
+    const baseLogFn = (
+      levelName === 'log' ? logger[levelName] || logger.info : logger.info
+    ).bind(logger);
     // This is the function that will be used to log. It takes in a bunch of
     // arguments, and will log them to our logger.
     return function patchedLog(...parts) {
       let data = undefined;
       let error = undefined;
+      let errorIndex = -1;
 
-      // If next is trying to log an error, put it into the error object by calling
-      // .find() and using 'it' as the callback variable.
-      const nativeError = parts.find(
-        (it) =>
-          // it exists and is an instance of Error or it is an object with a name and message
+      const nativeError = parts.find((it, idx) => {
+        const isError =
           (it && it instanceof Error) ||
-          (it && typeof it === 'object' && 'name' in it && 'message' in it)
-      );
-
-      // If nativeError is truthy, then call to cleanObjectForSerialization with the error
+          (it && typeof it === 'object' && 'level' in it && 'message' in it);
+        if (isError) {
+          errorIndex = idx;
+        }
+        return isError;
+      });
 
       if (nativeError) {
         error = cleanObjectForSerialization(nativeError);
@@ -114,23 +86,45 @@ function setUpLogging() {
         // ErrorThingy.report(nativeError)
       }
 
-      // If next is trying to log funky stuff, put it into the data object.
-      if (parts.length > 1) {
-        // If data is undefined, set it to an empty object. Otherwise, set it to data, which should
-        // already be undefined, since it's defined above as undefined, and is not reassigned.
-        data = data || {};
-        // Map over the parts and clean them for serialization and save that to data.parts
-        data.parts = parts.map((part) => cleanObjectForSerialization(part));
+      if (parts.length >= 1) {
+        data = parts.reduce((acc, part, idx) => {
+          if (idx !== errorIndex) {
+            // handle various type of data
+            switch (typeof part) {
+              case 'string':
+              case 'number':
+              case 'boolean':
+                acc[`meta`] = part;
+                break;
+              case 'object':
+                if (JSON.stringify(part) !== JSON.stringify(error)) {
+                  acc[`meta`] = cleanObjectForSerialization(part);
+                }
+                break;
+              default:
+                acc[`meta`] = String(part);
+            }
+          }
+          return acc;
+        }, {});
       }
 
-      // If nativeError is truthy and parts.length is 1, then set messages to an array with nativeError.toString()
-      // Otherwise, set messages to parts. The second part of this ternary is to handle the case where
-      // next is trying to log an error, but it's not an instance of Error or an object with a name and message.
-      const messages =
-        nativeError && parts.length === 1 ? [nativeError.toString()] : parts;
+      const messages = nativeError ? [nativeError.toString()] : parts;
 
-      // Call baseLogFn (logger) with data, error, and levelName, and then spread messages
-      baseLogFn({ level: levelName, message: messages.join(' '), ...data });
+      if (error) {
+        baseLogFn({
+          level: levelName,
+          message: messages,
+          error,
+          ...data,
+        });
+      } else {
+        baseLogFn({
+          level: levelName,
+          message: messages,
+          ...data,
+        });
+      }
     };
   }
 
@@ -152,7 +146,6 @@ function setUpLogging() {
 
   /**
    * Monkey-patch global console.log logger. Yes. Sigh.
-   * @type {Array<keyof typeof console>}
    */
   const loggingProperties = [
     'silly',
@@ -173,7 +166,8 @@ function setUpLogging() {
   process.on('unhandledRejection', (error, promise) => {
     logger.error(
       {
-        type: 'unhandledRejection',
+        message: `${error.message}`,
+        label: 'unhandledRejection',
         error: cleanObjectForSerialization(error),
         data: { promise: cleanObjectForSerialization(promise) },
       },
@@ -182,10 +176,11 @@ function setUpLogging() {
   });
 
   process.on('uncaughtException', (error) => {
-    logger.error(
-      { type: 'uncaughtException', error: cleanObjectForSerialization(error) },
-      `${error}`
-    );
+    logger.error({
+      message: error.message,
+      label: 'uncaughtException',
+      error: cleanObjectForSerialization(error),
+    });
   });
 }
 
@@ -205,25 +200,54 @@ function cleanObjectForSerialization(value) {
   //    JSON.stringify(new Error('nothing serialized')) returns '{}'
   //
   // Implementing this correctly is beyond the scope of my example.
-  const util = require('util');
+  function recursiveClean(input, seen) {
+    if (seen.has(input)) {
+      return;
+    }
 
-  // Remove cycles. JSON.stringify throws an error when you pass
-  // a value with cyclical references.
-  const cycleFreeValue = util.inspect(value, { depth: null });
+    if (input !== null && typeof input === 'object') {
+      seen.add(input);
 
-  // JSON.stringify only serializes enumerable properties, we
-  // need to copy interesting, but non-enumerable properties like
-  // value.name and value.message for errors:
-  if (value instanceof Error) {
-    return {
-      ...cycleFreeValue,
-      name: value.name,
-      message: value.message,
-      stack: value.stack, // Include stack property for completeness
-    };
+      if (input instanceof Error) {
+        // Case 1: Error instance
+        return {
+          name: input.name,
+          message: input.message,
+          stack: input.stack,
+          ...recursiveClean(Object.getPrototypeOf(input), seen),
+          ...Object.keys(input).reduce(
+            (acc, key) => ({ ...acc, [key]: recursiveClean(input[key], seen) }),
+            {}
+          ),
+        };
+      } else if (input.level && input.message) {
+        // Case 2: Object with `level` and `message` properties
+        // take the level property and remove it from the object
+        const { level, ...rest } = input;
+        // return the rest of the object with the level property removed
+        return Object.keys(rest).reduce(
+          (acc, key) => ({ ...acc, [key]: recursiveClean(rest[key], seen) }),
+          {}
+        );
+      } else if (Array.isArray(input)) {
+        // Case 3: Array
+        return input.reduce(
+          (acc, val, idx) => ({ ...acc, [idx]: recursiveClean(val, seen) }),
+          {}
+        );
+      } else {
+        // Case 3: Regular object
+        return Object.keys(input).reduce(
+          (acc, key) => ({ ...acc, [key]: recursiveClean(input[key], seen) }),
+          {}
+        );
+      }
+    } else {
+      return input; // <-- directly return the value
+    }
   }
 
-  return cycleFreeValue;
+  return recursiveClean(value, new WeakSet());
 }
 
 setUpDatadog();

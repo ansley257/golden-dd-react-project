@@ -1,0 +1,66 @@
+setUpLogging
+
+- Imports
+- create the logger
+- Monkey Patch Next.js logger
+    - require the next logging function
+        - returns an object with these keys:
+            - the prefixes (an object of prefixes)
+            - set the console.* for each log 
+              level (a function)
+    - get the keys and values from the next 
+      logging function and map over them
+      - if the value isn't a function (ie, is
+        the prefix) go to the next key
+      - try to map getLoggingFunction(key)
+        to console[key]
+            - bind logger to either logger[key]
+              or logger.info
+            - return patchedLog(...parts) -- parts
+              is what you call in console.log(), it's
+              an array
+              - nativeError is the values of the 
+                indecies that are of type error or an 
+                object with a name and a messagae
+              - if naitiveError has a value, 
+                clean object for serialization
+                - DO SOMETHING
+              - if parts has more than one value 
+                - map the parts to clean object for 
+                  serialization
+                  - DO SOMETHING
+                - if parts is an object, combine it with data
+              - if nativeError has a value and parts has one 
+                value, messages is equal to the nativeError
+                as a string. If parts doesn't have one value, 
+                return parts. If nativeError doesn't exist,
+                messages is false
+              - call the baseLogFn, which is either logger[something]
+                or logger.info and pass the value to logger
+    - Monkey patch the console logs by defining the log
+      levels and for each level, call the get logging 
+      function, which takes a level name
+      - bind logger to either logger[key]
+              or logger.info
+        - return patchedLog(...parts) -- parts
+          is what you call in console.log(), it's
+          an array
+        - nativeError is the values of the 
+          indecies that are of type error or an 
+          object with a name and a messagae
+        - if naitiveError has a value, 
+          clean object for serialization
+          - DO SOMETHING
+        - if parts has more than one value 
+          - map the parts to clean object for 
+            serialization
+            - DO SOMETHING
+          - if parts is an object, combine it with data
+        - if nativeError has a value and parts has one 
+          value, messages is equal to the nativeError
+          as a string. If parts doesn't have one value, 
+          return parts. If nativeError doesn't exist,
+          messages is false
+        - call the baseLogFn, which is either logger[something]
+          or logger.info and pass the value to logger
+
