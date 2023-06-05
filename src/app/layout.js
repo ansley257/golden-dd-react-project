@@ -1,5 +1,26 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
+import { datadogRum } from '@datadog/browser-rum';
+
+console.info('datadogRum', datadogRum);
+let env = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+datadogRum.init({
+  applicationId: 'a02d8fac-7bf1-47d9-99b5-69866aaeb806',
+  clientToken: 'pub3c66e1103cfaa552ebcadd297f4048c3',
+  site: 'datadoghq.com',
+  service: 'dd-winston-test',
+  env: 'dev',
+  // Specify a version number to identify the deployed version of your application in Datadog
+  // version: '1.0.0',
+  sessionSampleRate: 100,
+  sessionReplaySampleRate: 100,
+  trackUserInteractions: true,
+  trackResources: true,
+  trackLongTasks: true,
+  defaultPrivacyLevel: 'mask-user-input',
+});
+
+datadogRum.startSessionReplayRecording();
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -12,6 +33,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang='en'>
       <body className={inter.className}>{children}</body>
+      <button onClick={console.info('clicked')}>Click me</button>
     </html>
   );
 }

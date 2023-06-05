@@ -16,6 +16,11 @@ function setUpDatadog() {
     env: process.env.NODE_ENV === 'production' ? 'prod' : 'dev',
     service: process.env.DD_SERVICE_NAME,
     version: process.env.DD_VERSION,
+    runtimeMetrics: true,
+    dogstatsd: { port: 8125 },
+    startupLogs: true,
+    serviceMapping:
+      'jest:jest-golden-dd-react,next:nextjs-golden-dd-react,winston:winston-golden-dd-react',
   });
 }
 /**
