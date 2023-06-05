@@ -38,6 +38,7 @@ function setUpLogging() {
   const path = require('path');
   require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
   const winston = require('winston');
+
   const logger = winston.createLogger({
     level: 'debug',
     format: winston.format.combine(
@@ -96,10 +97,9 @@ function setUpLogging() {
 
         // If part is an object, then merge it into data
         if (typeof parts === 'object') {
-          data = { ...data, parts };
+          data = { ...data, ...parts };
         }
       }
-
       // If nativeError is truthy and parts.length is 1, then set messages to an array with nativeError.toString()
       // Otherwise, set messages to parts. The second part of this ternary is to handle the case where
       // next is trying to log an error, but it's not an instance of Error or an object with a name and message.
@@ -129,7 +129,6 @@ function setUpLogging() {
 
   /**
    * Monkey-patch global console.log logger. Yes. Sigh.
-   * @type {Array<keyof typeof console>}
    */
   const loggingProperties = [
     'silly',

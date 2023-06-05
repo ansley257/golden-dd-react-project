@@ -5,12 +5,6 @@ import { datadogRum } from '@datadog/browser-rum';
 export default function App() {
   console.warn('yoa');
 
-  console.debug('DD_APPLICATION_ID', process.env.DD_APPLICATION_ID);
-  console.debug('DD_CLIENT_TOKEN', process.env.DD_CLIENT_TOKEN);
-  console.debug('DD_SERVICE_NAME', process.env.DD_SERVICE_NAME);
-  console.debug('DD_VERSION', process.env.DD_VERSION);
-  console.debug('NODE_ENV', process.env.NODE_ENV);
-
   const rum = datadogRum.init({
     applicationId: process.env.DD_APPLICATION_ID,
     clientToken: process.env.DD_CLIENT_TOKEN,
