@@ -1,6 +1,6 @@
 {
   "name": "dd-winston-test",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "node --require ./server-preload.js ./node_modules/.bin/next dev",

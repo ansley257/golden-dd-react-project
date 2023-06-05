@@ -3,7 +3,13 @@ import React from 'react';
 import { datadogRum } from '@datadog/browser-rum';
 
 export default function App() {
-  console.warn('yoa');
+  console.error(
+    new Error('Testing Error Logs', {
+      name: 'Error Name',
+      stack: 'Error Stack',
+    }),
+    { fileName: 'Error File Name', lineNumber: 1, columnNumber: 1 }
+  );
 
   const rum = datadogRum.init({
     applicationId: process.env.DD_APPLICATION_ID,
@@ -21,7 +27,6 @@ export default function App() {
     defaultPrivacyLevel: 'mask-user-input',
   });
 
-  console.debug('rum', rum);
   console.log(
     'start session replay recording',
     datadogRum.startSessionReplayRecording()
